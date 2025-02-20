@@ -47,8 +47,9 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
 
     private async getRecords(companyName: string): Promise<string[]> {
         // This might bring issues for companies with similar names, but let's ignore that for now.
+        // TODO: Normalization should be by calling rejstrik!
         const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
-        const stateKey = `content-source-or-justice-state-${companyNameNormalized}`;
+        const stateKey = `content-source-or-justice-download-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
             files: [],
@@ -119,7 +120,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
 
         // TODO: Duplicate code
         const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
-        const stateKey = `content-source-or-justice-state-${companyNameNormalized}`;
+        const stateKey = `content-source-or-justice-ocr-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
             files: [],

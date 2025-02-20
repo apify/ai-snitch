@@ -5,7 +5,7 @@ import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framewor
 import { createMermaidRenderer } from 'mermaid-isomorphic';
 import { z } from 'zod';
 
-type InstagramScrapeToolOutput = {
+type MermaidDiagramToolOutput = {
     codeFilename: string,
     svgFilename: string,
 }
@@ -15,7 +15,7 @@ const inputSchema = z.object({
     filenameBase: z.string().describe('Name of file to generate'),
 });
 
-export class SaveMermaidDiagram extends Tool<JSONToolOutput<InstagramScrapeToolOutput>> {
+export class SaveMermaidDiagram extends Tool<JSONToolOutput<MermaidDiagramToolOutput>> {
     override name: string = 'save-mermaid-diagram';
 
     override description: string = 'Tool that saves mermaid diagram to key value store';
@@ -24,12 +24,12 @@ export class SaveMermaidDiagram extends Tool<JSONToolOutput<InstagramScrapeToolO
         return inputSchema;
     }
 
-    public readonly emitter: ToolEmitter<ToolInput<this>, JSONToolOutput<InstagramScrapeToolOutput>> = Emitter.root.child({
+    public readonly emitter: ToolEmitter<ToolInput<this>, JSONToolOutput<MermaidDiagramToolOutput>> = Emitter.root.child({
         namespace: ['tool', 'save_mermaid_diagram'],
         creator: this,
     });
 
-    protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<InstagramScrapeToolOutput>> {
+    protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<MermaidDiagramToolOutput>> {
         log.info(`Generating image using mermaid`);
         const { mermaidCode, filenameBase }: z.infer<typeof inputSchema> = input;
 

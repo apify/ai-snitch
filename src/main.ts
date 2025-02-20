@@ -13,8 +13,6 @@ import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
 import { ContentSourceOrJustice } from './tools/content_source_or_justice.js';
 
 // TODO:
-// - Readme
-// - Pricing
 // - Cleanup
 // - Publish
 
@@ -31,8 +29,6 @@ await Actor.init();
 
 // Handle input
 const {
-    // The query default value is provided only for template testing purposes.
-    // You can remove it.
     entityName,
     query,
     modelName,

@@ -75,7 +75,7 @@ const agent = new BeeAgent({
         // new RejstrikDocumentsScrapeTool(),
         // new PDFLoaderTool(),
         new SaveMermaidDiagram(),
-        new ContentSourceOrJustice(),
+        new ContentSourceOrJustice({ documentLimit: 3 }),
     ],
 });
 

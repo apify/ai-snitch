@@ -29,7 +29,14 @@ const inputSchema = z.object({
     companyName: z.string().describe('Name of company to search for.'),
 });
 
+type Config = {
+    documentLimit: number,
+}
 export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
+    constructor(private readonly config: Config) {
+        super();
+    }
+
     override name: string = 'download-data-from-or-justice';
 
     override description: string = 'Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).';
@@ -67,7 +74,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         const crawler = new CheerioCrawler({
             proxyConfiguration: await Actor.createProxyConfiguration(),
             maxRequestsPerCrawl: 100,
-            maxConcurrency: 4,
+            maxConcurrency: 20,
             requestHandler: async ({ enqueueLinks, request, $, sendRequest }) => {
                 if (request.label === LABELS.START) {
                     log.info('Enqueuing urls from search page...');
@@ -78,8 +85,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                 } else if (request.label === LABELS.SBIRKA_LISTIN) {
                     log.info('Enqueuing URLs from document list...');
                     await enqueueLinks({
-                        // TODO: This limit might be too low - but the context length needs to be respected!!!
-                        limit: 5,
+                        limit: this.config.documentLimit,
                         selector: 'a[href^="./vypis-sl-detail"]',
                         label: LABELS.LISTINA,
                     });

@@ -3,19 +3,12 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
-    "entityName":{
-      "title": "Entity name",
-      "type": "string",
-      "description": "Name",
-      "editor": "textfield",
-      "prefill": "Apify"
-    },
     "query": {
       "title": "Query",
       "type": "string",
       "description": "Query for the agent.",
       "editor": "textfield",
-      "prefill": "What is the total number of likes and the total number of comments for the latest 10 posts on the @openai Instagram account? From the 10 latest posts, show me the most popular one."
+      "prefill": "What do you need to know?"
     },
     "modelName": {
       "title": "OpenAI model",
@@ -36,5 +29,5 @@
       "default": false
     }
   },
-  "required": ["entityName", "query", "modelName"]
+  "required": ["query", "modelName"]
 }

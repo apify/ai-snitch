@@ -91,8 +91,6 @@ export class RejstrikDocumentsScrapeTool extends Tool<JSONToolOutput<RejstrikDoc
 
         const flatResult = documentDownloadLinks.flat();
 
-        await downloadFile(flatResult.at(1), '/Users/jankirchner/Projects/Apify/ai-snitch');
-
         log.debug(`In total found ${flatResult.length} documents`);
 
         return new JSONToolOutput({ documentDownloadLinks: flatResult });

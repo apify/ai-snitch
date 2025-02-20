@@ -15,6 +15,8 @@ import { ContentSourceOrJustice } from './tools/content_source_or_justice.js';
 // TODO:
 // - Cleanup
 // - Publish
+// - Context length limit!
+// - OCR Actor
 
 // Actor input schema
 interface Input {

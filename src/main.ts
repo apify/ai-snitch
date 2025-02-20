@@ -48,6 +48,8 @@ Generate and save diagram of entities and relations in mermaid format.`;
 
 const prompt = `${baseQuery}\n${query}`;
 
+// const prompt = 'Generate and save a random small diagram of entities and relations in mermaid format.';
+
 /**
  * Actor code
 */
@@ -127,7 +129,9 @@ await Actor.pushData({
     // This can be removed if you don't need structured output.
     structuredResponse: structuredResponse.object,
 });
-log.info('Pushed the data into the dataset!');
+await Actor.setValue('OUTPUT.json', structuredResponse.object);
+
+log.info('Saved all the data!');
 
 // Gracefully exit the Actor process. It's recommended to quit all Actors with an exit().
 await Actor.exit();

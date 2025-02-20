@@ -25,18 +25,18 @@ export class SaveMermaidDiagram extends Tool<JSONToolOutput<InstagramScrapeToolO
     }
 
     public readonly emitter: ToolEmitter<ToolInput<this>, JSONToolOutput<InstagramScrapeToolOutput>> = Emitter.root.child({
-        namespace: ['tool', 'load_pdf_as_text'],
+        namespace: ['tool', 'save_mermaid_diagram'],
         creator: this,
     });
 
     protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<InstagramScrapeToolOutput>> {
+        log.info(`Generating image using mermaid`);
         const { mermaidCode, filenameBase }: z.infer<typeof inputSchema> = input;
 
         const codeFilename = `mermaid_diagram_${filenameBase}.mermaid.md`;
         const svgFilename = `mermaid_diagram_${filenameBase}.svg`;
 
-        await Actor.setValue(codeFilename, mermaidCode);
-        log.info(`Generating image using mermaid`);
+        await Actor.setValue(codeFilename, mermaidCode, { contentType: 'text/plain' });
 
         const renderer = createMermaidRenderer();
 

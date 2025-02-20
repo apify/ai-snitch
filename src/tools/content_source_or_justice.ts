@@ -77,6 +77,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                 } else if (request.label === LABELS.SBIRKA_LISTIN) {
                     log.info('Enqueuing URLs from document list...');
                     await enqueueLinks({
+                        limit: 2,
                         selector: 'a[href^="./vypis-sl-detail"]',
                         label: LABELS.LISTINA,
                     });

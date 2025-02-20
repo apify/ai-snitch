@@ -7,8 +7,6 @@ import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIChatModel } from 'bee-agent-framework/adapters/openai/backend/chat';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
-import { RejstrikDocumentsScrapeTool } from './tools/getDocuments_obchodniRejstrik.js';
-import { PDFLoaderTool } from './tools/pdf_loader.js';
 
 import { entitySchema, relationSchema } from './schemas.js';
 import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
@@ -41,13 +39,14 @@ if (!query) {
     throw new Error('An agent query is required.');
 }
 
-const effectiveQuery = query.replace('entity', entityName);
 const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
 The files might be in any language, your output should always be in English.
 
+You can search for the company or person info in obchodni rejstrik justice.
+
 Generate and save diagram of entities and relations in mermaid format.`;
 
-const prompt = `${effectiveQuery}\n${baseQuery}\n${query}`;
+const prompt = `${baseQuery}\n${query}`;
 
 // const prompt = 'Download records from OR Justice for company Apify.';
 
@@ -83,8 +82,6 @@ const agent = new BeeAgent({
 // Store tool messages for later structured output generation.
 // This can be removed if you don't need structured output.
 const structuredOutputGenerator = new StructuredOutputGenerator(llmStructured);
-
-log.debug(`Effective query: ${effectiveQuery}`);
 
 // Prompt the agent with the query.
 // Debug log agent status updates, e.g., thoughts, tool calls, etc.

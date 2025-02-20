@@ -9,6 +9,7 @@ import { CalculatorSumTool } from './tools/calculator.js';
 import { InstagramScrapeTool } from './tools/instagram.js';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
+import { RejstrikDocumentsScrapeTool } from './tools/getDocuments_obchodniRejstrik.js';
 
 // This is an ESM project, and as such, it requires you to specify extensions in your relative imports.
 // Read more about this here: https://nodejs.org/docs/latest-v18.x/api/esm.html#mandatory-file-extensions
@@ -17,6 +18,7 @@ import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from 
 
 // Actor input schema
 interface Input {
+    entityName: string;
     query: string;
     modelName: string;
     debug?: boolean;
@@ -29,8 +31,9 @@ await Actor.init();
 const {
     // The query default value is provided only for template testing purposes.
     // You can remove it.
-    query = 'This is fallback test query, do not nothing and ignore it.',
-    modelName = 'gpt-4o-mini',
+    entityName,
+    query,
+    modelName,
     debug,
 } = await Actor.getInput() as Input;
 if (debug) {
@@ -39,6 +42,8 @@ if (debug) {
 if (!query) {
     throw new Error('An agent query is required.');
 }
+
+const effectiveQuery = query.replace('entity', entityName);
 
 /**
  * Actor code
@@ -61,18 +66,21 @@ const llmStructured = new OpenAIChatModel(modelName);
 const agent = new BeeAgent({
     llm,
     memory: new UnconstrainedMemory(),
-    tools: [new CalculatorSumTool(),
-        new InstagramScrapeTool()],
+    tools: [
+        new RejstrikDocumentsScrapeTool(),
+    ],
 });
 
 // Store tool messages for later structured output generation.
 // This can be removed if you don't need structured output.
 const structuredOutputGenerator = new StructuredOutputGenerator(llmStructured);
 
+log.debug(`Effective query: ${effectiveQuery}`);
+
 // Prompt the agent with the query.
 // Debug log agent status updates, e.g., thoughts, tool calls, etc.
 const response = await agent
-    .run({ prompt: query })
+    .run({ prompt: effectiveQuery })
     .observe((emitter) => {
         emitter.on('update', async ({ update }) => {
             log.debug(`Agent (${update.key}) 🤖 : ${update.value}`);

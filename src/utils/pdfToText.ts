@@ -11,7 +11,7 @@ export const pdfToText = async (fileBase64: string) => {
     log.debug('PDF to text called');
 
     try {
-        const result = await gotScraping<OcrResult>('https://apipro1.ocr.space/parse/image', {
+        const result = await gotScraping('https://apipro1.ocr.space/parse/image', {
             method: 'POST',
             headers: {
                 apiKey: process.env.OCR_API_KEY,
@@ -26,9 +26,11 @@ export const pdfToText = async (fileBase64: string) => {
             http2: false,
         });
 
-        const parsedPages = result.body?.ParsedResults?.map(({ ParsedText }) => ParsedText);
+        const parsedPages = (JSON.parse(result.body) as OcrResult)?.ParsedResults?.map(({ ParsedText }) => ParsedText);
 
-        log.debug(`Parsed ${parsedPages.length} pages!`);
+        log.debug(`Parsed ${parsedPages?.length ?? 0} pages`);
+
+        if (!parsedPages?.length) console.log(result.body);
 
         return parsedPages?.join('\n\n\n');
     } catch (err: unknown) {

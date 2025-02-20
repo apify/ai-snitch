@@ -1,5 +1,6 @@
 import { log } from 'apify';
 import { gotScraping } from 'got-scraping';
+import { chargeForOcrCall } from '../ppe_utils.js';
 
 type OcrResult = {
     ParsedResults: {
@@ -11,6 +12,8 @@ export const pdfToText = async (fileBase64: string) => {
     log.debug('PDF to text called');
 
     try {
+        await chargeForOcrCall();
+
         const result = await gotScraping('https://apipro1.ocr.space/parse/image', {
             method: 'POST',
             headers: {

@@ -12,6 +12,7 @@ import { PDFLoaderTool } from './tools/pdf_loader.js';
 
 import { entitySchema, relationSchema } from './schemas.js';
 import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
+import { ContentSourceOrJustice } from './tools/content_source_or_justice.js';
 
 // Actor input schema
 interface Input {
@@ -72,9 +73,10 @@ const agent = new BeeAgent({
     llm,
     memory: new UnconstrainedMemory(),
     tools: [
-        new RejstrikDocumentsScrapeTool(),
-        new PDFLoaderTool(),
+        // new RejstrikDocumentsScrapeTool(),
+        // new PDFLoaderTool(),
         new SaveMermaidDiagram(),
+        new ContentSourceOrJustice(),
     ],
 });
 

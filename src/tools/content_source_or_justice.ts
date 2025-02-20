@@ -4,6 +4,7 @@ import { Emitter } from 'bee-agent-framework/emitter/emitter';
 import { AnyToolSchemaLike } from 'bee-agent-framework/internals/helpers/schema';
 import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framework/tools/base';
 import { z } from 'zod';
+import { pdfToText } from '../utils/pdfToText.js';
 
 interface ContentSourceOrJusticeToolOutput {
     files: string[],
@@ -43,7 +44,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
             LISTINA: 'LISTINA',
         };
 
-        const files: string[] = [];
+        const encodedFiles: string[] = [];
 
         const crawler = new CheerioCrawler({
             proxyConfiguration,
@@ -69,9 +70,10 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                         const contentType = response.rawHeaders[response.rawHeaders.findIndex((h) => h.toLowerCase() === 'content-type') + 1];
                         const extension = contentType.split('/').pop();
                         const filename = this.getNextFilename(extension as string);
+
                         await Actor.setValue(filename, response.rawBody, { contentType });
                         await Actor.pushData({ type: 'downloadedFile', url: request.loadedUrl, filename });
-                        files.push(filename);
+                        encodedFiles.push(response.rawBody.toString('base64'));
                     }
                 }
             },
@@ -87,7 +89,9 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
             { url: startUrl.toString(), label: LABELS.START },
         ]);
 
-        return new JSONToolOutput({ files });
+        const textContent = await Promise.allSettled(encodedFiles.map(pdfToText));
+
+        return new JSONToolOutput({ files: textContent });
     }
 
     static {

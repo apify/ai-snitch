@@ -5,10 +5,37 @@ import { AnyToolSchemaLike } from 'bee-agent-framework/internals/helpers/schema'
 import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framework/tools/base';
 import { gotScraping } from 'got-scraping';
 import { z } from 'zod';
+import fs from 'fs';
 
 interface RejstrikDocumentsOutput {
     documentDownloadLinks: string[];
 }
+
+const pdfToText = async (fileBufferOrUrl: string) => {
+    let fileUploadUrl = {};
+
+    if (typeof fileBufferOrUrl === 'string' && /^(http|https):\/\//i.test(fileBufferOrUrl)) {
+        fileUploadUrl = {
+            url: fileBufferOrUrl,
+        };
+    } else {
+        const fileBuffer = fs.readFileSync(fileLocation);
+        const base64String = fileBuffer.toString('base64');
+        fileUploadUrl = {
+            base64Image: base64String,
+        };
+    }
+
+    const result = await gotScraping('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        searchParams: {
+            apiKey: 'K87959486588957',
+            ...fileUploadUrl,
+        },
+    });
+
+    console.log(result.body);
+};
 
 const REJSTRIK_BASE_URL = 'https://or.justice.cz';
 const REJSTRIK_BASE_UI_URL = `${REJSTRIK_BASE_URL}/ias/ui`;
@@ -18,7 +45,7 @@ const transformRejstrikRelativeUrl = (relativeUrl: string, baseUrl = REJSTRIK_BA
     ? `${baseUrl}${relativeUrl.substring(1)}`
     : `${baseUrl}${relativeUrl}`);
 
-export const getSingleDocumentContent = async (documentUrl: string) => {
+const getSingleDocumentContent = async (documentUrl: string) => {
     const documentDetailResponse = await gotScraping(documentUrl);
 
     const $documentDetail = cheerio.load(documentDetailResponse.body);
@@ -90,6 +117,8 @@ export class RejstrikDocumentsScrapeTool extends Tool<JSONToolOutput<RejstrikDoc
         log.debug(`Found ${documentDownloadLinks.length} document details. ${entityDocumentsLinks.length - documentDownloadLinks.length} requests failed`);
 
         const flatResult = documentDownloadLinks.flat();
+
+        await downloadFile(flatResult.at(1), '/Users/jankirchner/Projects/Apify/ai-snitch');
 
         log.debug(`In total found ${flatResult.length} documents`);
 

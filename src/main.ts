@@ -17,6 +17,7 @@ import { PDFLoaderTool } from './tools/pdf_loader.js';
 // Note that we need to use `.js` even when inside TS files
 // import { router } from './routes.js';
 import { entitySchema, relationSchema } from './schemas.js';
+import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
 
 // Actor input schema
 interface Input {
@@ -47,7 +48,9 @@ if (!query) {
 
 const effectiveQuery = query.replace('entity', entityName);
 const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
-The files might be in any language, your output should always be in English.`;
+The files might be in any language, your output should always be in English.
+
+Generate and save diagram of entities and relations in mermaid format.`;
 
 const prompt = `${baseQuery}\n${query}`;
 
@@ -75,6 +78,7 @@ const agent = new BeeAgent({
     tools: [
         new RejstrikDocumentsScrapeTool(),
         new PDFLoaderTool(),
+        new SaveMermaidDiagram(),
     ],
 });
 
@@ -114,7 +118,6 @@ const structuredResponse = await structuredOutputGenerator.generateStructuredOut
     z.object({
         entities: z.array(entitySchema),
         relations: z.array(relationSchema),
-        mermaidDiagram: z.string().describe('Diagram of entities and relations in mermaid format'),
     }));
 log.debug(`Structured response: ${JSON.stringify(structuredResponse)}`);
 // Since the token usage tracking does not work with the Bee LLM, we will

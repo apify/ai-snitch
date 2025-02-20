@@ -49,7 +49,7 @@ const effectiveQuery = query.replace('entity', entityName);
 const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
 The files might be in any language, your output should always be in English.`;
 
-const prompt = `${baseQuery}\n${query}`;
+const prompt = `${effectiveQuery}\n${baseQuery}\n${query}`;
 
 /**
  * Actor code

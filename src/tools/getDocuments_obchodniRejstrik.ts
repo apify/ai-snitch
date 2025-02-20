@@ -10,12 +10,13 @@ interface RejstrikDocumentsOutput {
     documentDownloadLinks: string[];
 }
 
-const REJSTRIK_BASE_URL = 'https://or.justice.cz/ias/ui';
+const REJSTRIK_BASE_URL = 'https://or.justice.cz';
+const REJSTRIK_BASE_UI_URL = `${REJSTRIK_BASE_URL}/ias/ui`;
 
 const getRejstrikSearchUrl = (entityName: string) => `https://or.justice.cz/ias/ui/rejstrik-$firma?jenPlatne=PLATNE&nazev=${encodeURIComponent(entityName)}&polozek=50&typHledani=STARTS_WITH`;
-const transformRejstrikRelativeUrl = (relativeUrl: string) => (relativeUrl.startsWith('./')
-    ? `${REJSTRIK_BASE_URL}${relativeUrl.substring(1)}`
-    : `${REJSTRIK_BASE_URL}${relativeUrl}`);
+const transformRejstrikRelativeUrl = (relativeUrl: string, baseUrl = REJSTRIK_BASE_UI_URL) => (relativeUrl.startsWith('./')
+    ? `${baseUrl}${relativeUrl.substring(1)}`
+    : `${baseUrl}${relativeUrl}`);
 
 export const getSingleDocumentContent = async (documentUrl: string) => {
     const documentDetailResponse = await gotScraping(documentUrl);
@@ -28,7 +29,7 @@ export const getSingleDocumentContent = async (documentUrl: string) => {
 
     log.debug(`Found ${documentDetailDownloadLinks.length} download links`);
 
-    return documentDetailDownloadLinks.map(transformRejstrikRelativeUrl);
+    return documentDetailDownloadLinks.map((link) => transformRejstrikRelativeUrl(link, REJSTRIK_BASE_URL));
 };
 
 /**

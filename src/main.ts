@@ -5,18 +5,13 @@ import { z } from 'zod';
 import { LangChainChatModel } from 'bee-agent-framework/adapters/langchain/backend/chat';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIChatModel } from 'bee-agent-framework/adapters/openai/backend/chat';
-// import { CalculatorSumTool } from './tools/calculator.js';
-// import { InstagramScrapeTool } from './tools/instagram.js';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
 import { RejstrikDocumentsScrapeTool } from './tools/getDocuments_obchodniRejstrik.js';
 import { PDFLoaderTool } from './tools/pdf_loader.js';
 
-// This is an ESM project, and as such, it requires you to specify extensions in your relative imports.
-// Read more about this here: https://nodejs.org/docs/latest-v18.x/api/esm.html#mandatory-file-extensions
-// Note that we need to use `.js` even when inside TS files
-// import { router } from './routes.js';
 import { entitySchema, relationSchema } from './schemas.js';
+import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
 
 // Actor input schema
 interface Input {
@@ -47,9 +42,13 @@ if (!query) {
 
 const effectiveQuery = query.replace('entity', entityName);
 const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
-The files might be in any language, your output should always be in English.`;
+The files might be in any language, your output should always be in English.
+
+Generate and save diagram of entities and relations in mermaid format.`;
 
 const prompt = `${effectiveQuery}\n${baseQuery}\n${query}`;
+
+// const prompt = 'Generate and save a random small diagram of entities and relations in mermaid format.';
 
 /**
  * Actor code
@@ -75,6 +74,7 @@ const agent = new BeeAgent({
     tools: [
         new RejstrikDocumentsScrapeTool(),
         new PDFLoaderTool(),
+        new SaveMermaidDiagram(),
     ],
 });
 
@@ -114,7 +114,6 @@ const structuredResponse = await structuredOutputGenerator.generateStructuredOut
     z.object({
         entities: z.array(entitySchema),
         relations: z.array(relationSchema),
-        mermaidDiagram: z.string().describe('Diagram of entities and relations in mermaid format'),
     }));
 log.debug(`Structured response: ${JSON.stringify(structuredResponse)}`);
 // Since the token usage tracking does not work with the Bee LLM, we will
@@ -130,7 +129,9 @@ await Actor.pushData({
     // This can be removed if you don't need structured output.
     structuredResponse: structuredResponse.object,
 });
-log.info('Pushed the data into the dataset!');
+await Actor.setValue('OUTPUT.json', structuredResponse.object);
+
+log.info('Saved all the data!');
 
 // Gracefully exit the Actor process. It's recommended to quit all Actors with an exit().
 await Actor.exit();

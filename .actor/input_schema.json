@@ -3,6 +3,13 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
+    "entityName":{
+      "title": "Entity name",
+      "type": "string",
+      "description": "Name",
+      "editor": "textfield",
+      "prefill": "Apify"
+    },
     "query": {
       "title": "Query",
       "type": "string",
@@ -29,5 +36,5 @@
       "default": false
     }
   },
-  "required": ["query", "modelName"]
+  "required": ["entityName", "query", "modelName"]
 }

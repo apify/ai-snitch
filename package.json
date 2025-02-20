@@ -12,6 +12,7 @@
 		"apify": "^3.3.1",
 		"bee-agent-framework": "^0.1.2",
 		"cheerio": "^1.0.0",
+		"crawlee": "^3.12.2",
 		"got-scraping": "^4.1.1",
 		"mermaid": "^11.4.1",
 		"mermaid-isomorphic": "^3.0.0",

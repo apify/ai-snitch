@@ -15,18 +15,22 @@ export const pdfToText = async (fileBase64: string) => {
             method: 'POST',
             headers: {
                 apiKey: process.env.OCR_API_KEY,
-                'Content-type': 'multipart/form-data',
+                'Content-type': 'application/x-www-form-urlencoded',
             },
             searchParams: {
                 language: 'cze',
             },
-            body: `data:application/pdf;base64,${fileBase64}`,
+            form: {
+                base64Image: `data:application/pdf;base64,${fileBase64}`,
+            },
             http2: false,
         });
 
-        console.log(result.body);
+        const parsedPages = result.body?.ParsedResults?.map(({ ParsedText }) => ParsedText);
 
-        return result.body.ParsedResults?.map(({ ParsedText }) => ParsedText)?.join('\n\n\n');
+        log.debug(`Parsed ${parsedPages.length} pages!`);
+
+        return parsedPages?.join('\n\n\n');
     } catch (err: unknown) {
         // @ts-expect-error exception
         console.log(err?.message);

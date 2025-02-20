@@ -12,6 +12,12 @@ import { entitySchema, relationSchema } from './schemas.js';
 import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
 import { ContentSourceOrJustice } from './tools/content_source_or_justice.js';
 
+// TODO:
+// - Readme
+// - Pricing
+// - Cleanup
+// - Publish
+
 // Actor input schema
 interface Input {
     entityName: string;

@@ -5,16 +5,18 @@ import { z } from 'zod';
 import { LangChainChatModel } from 'bee-agent-framework/adapters/langchain/backend/chat';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIChatModel } from 'bee-agent-framework/adapters/openai/backend/chat';
-import { CalculatorSumTool } from './tools/calculator.js';
-import { InstagramScrapeTool } from './tools/instagram.js';
+// import { CalculatorSumTool } from './tools/calculator.js';
+// import { InstagramScrapeTool } from './tools/instagram.js';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
 import { RejstrikDocumentsScrapeTool } from './tools/getDocuments_obchodniRejstrik.js';
+import { PDFLoaderTool } from './tools/pdf_loader.js';
 
 // This is an ESM project, and as such, it requires you to specify extensions in your relative imports.
 // Read more about this here: https://nodejs.org/docs/latest-v18.x/api/esm.html#mandatory-file-extensions
 // Note that we need to use `.js` even when inside TS files
 // import { router } from './routes.js';
+import { entitySchema, relationSchema } from './schemas.js';
 
 // Actor input schema
 interface Input {
@@ -44,6 +46,10 @@ if (!query) {
 }
 
 const effectiveQuery = query.replace('entity', entityName);
+const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
+The files might be in any language, your output should always be in English.`;
+
+const prompt = `${baseQuery}\n${query}`;
 
 /**
  * Actor code
@@ -68,6 +74,7 @@ const agent = new BeeAgent({
     memory: new UnconstrainedMemory(),
     tools: [
         new RejstrikDocumentsScrapeTool(),
+        new PDFLoaderTool(),
     ],
 });
 
@@ -80,7 +87,7 @@ log.debug(`Effective query: ${effectiveQuery}`);
 // Prompt the agent with the query.
 // Debug log agent status updates, e.g., thoughts, tool calls, etc.
 const response = await agent
-    .run({ prompt: effectiveQuery })
+    .run({ prompt })
     .observe((emitter) => {
         emitter.on('update', async ({ update }) => {
             log.debug(`Agent (${update.key}) 🤖 : ${update.value}`);
@@ -103,18 +110,11 @@ log.info(`Agent 🤖 : ${response.result.text}`);
 
 // Hacky way to get the structured output.
 // Using the stored tool messages and the user query to create a structured output.
-const structuredResponse = await structuredOutputGenerator.generateStructuredOutput(query,
+const structuredResponse = await structuredOutputGenerator.generateStructuredOutput(prompt,
     z.object({
-        totalLikes: z.number(),
-        totalComments: z.number(),
-        mostPopularPosts: z.array(z.object({
-            url: z.string(),
-            likes: z.number(),
-            comments: z.number(),
-            timestamp: z.string(),
-            caption: z.string().nullable().optional(),
-            alt: z.string().nullable().optional(),
-        })),
+        entities: z.array(entitySchema),
+        relations: z.array(relationSchema),
+        mermaidDiagram: z.string().describe('Diagram of entities and relations in mermaid format'),
     }));
 log.debug(`Structured response: ${JSON.stringify(structuredResponse)}`);
 // Since the token usage tracking does not work with the Bee LLM, we will

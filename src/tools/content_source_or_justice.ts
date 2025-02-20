@@ -89,9 +89,12 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
             { url: startUrl.toString(), label: LABELS.START },
         ]);
 
-        const textContent = await Promise.allSettled(encodedFiles.map(pdfToText));
+        const textContents = await Promise.allSettled(encodedFiles.map(pdfToText));
+        const transformedTextContents = textContents.filter((o) => o.status === 'fulfilled');
 
-        return new JSONToolOutput({ files: textContent });
+        log.debug(`Successfully transformed ${transformedTextContents.length} files`);
+
+        return new JSONToolOutput({ files: transformedTextContents.map((o) => o.value) });
     }
 
     static {

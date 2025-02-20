@@ -5,17 +5,11 @@ import { z } from 'zod';
 import { LangChainChatModel } from 'bee-agent-framework/adapters/langchain/backend/chat';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIChatModel } from 'bee-agent-framework/adapters/openai/backend/chat';
-// import { CalculatorSumTool } from './tools/calculator.js';
-// import { InstagramScrapeTool } from './tools/instagram.js';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
 import { RejstrikDocumentsScrapeTool } from './tools/getDocuments_obchodniRejstrik.js';
 import { PDFLoaderTool } from './tools/pdf_loader.js';
 
-// This is an ESM project, and as such, it requires you to specify extensions in your relative imports.
-// Read more about this here: https://nodejs.org/docs/latest-v18.x/api/esm.html#mandatory-file-extensions
-// Note that we need to use `.js` even when inside TS files
-// import { router } from './routes.js';
 import { entitySchema, relationSchema } from './schemas.js';
 import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
 

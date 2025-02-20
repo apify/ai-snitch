@@ -49,7 +49,7 @@ Generate and save diagram of entities and relations in mermaid format.`;
 
 const prompt = `${effectiveQuery}\n${baseQuery}\n${query}`;
 
-// const prompt = 'Generate and save a random small diagram of entities and relations in mermaid format.';
+// const prompt = 'Download records from OR Justice for company Apify.';
 
 /**
  * Actor code

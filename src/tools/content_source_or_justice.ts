@@ -6,18 +6,33 @@ import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framewor
 import { z } from 'zod';
 import { pdfToText } from '../utils/pdfToText.js';
 
+const getHeaderValue = (rawHeaders: string[], name: string): string | null | undefined => {
+    return rawHeaders[rawHeaders.findIndex((h) => h.toLowerCase() === name) + 1];
+};
+
+// TODO: File counter + search prefix + search normalization
+const getFileMetadata = (rawHeaders: string[]) => {
+    const contentType = getHeaderValue(rawHeaders, 'content-type') ?? 'text/plain';
+    const filename = getHeaderValue(rawHeaders, 'content-disposition')?.match(/filename="(.*)"/)?.[1] || 'unknown';
+
+    return {
+        contentType,
+        filename: filename.replace(/[^a-zA-Z0-9_.-]/g, '-'),
+    };
+};
+
 interface ContentSourceOrJusticeToolOutput {
     files: string[],
 }
 
 const inputSchema = z.object({
-    search: z.string().describe('Name of company to search for.'),
+    companyName: z.string().describe('Name of company to search for.'),
 });
 
 export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
     override name: string = 'download-data-from-or-justice';
 
-    override description: string = 'Tool for downloading data from OR Justice.';
+    override description: string = 'Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).';
 
     private filenameCounter: number = 0;
 
@@ -30,25 +45,28 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         creator: this,
     });
 
-    private getNextFilename(extension: string): string {
-        return `file_${this.filenameCounter++}.${extension}`;
-    }
-
-    protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
-        const { search } = input as z.infer<typeof inputSchema>;
-        const proxyConfiguration = await Actor.createProxyConfiguration();
+    private async getRecords(companyName: string): Promise<string[]> {
+        // This might bring issues for companies with similar names, but let's ignore that for now.
+        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
+        const stateKey = `content-source-or-justice-state-${companyNameNormalized}`;
+        const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
+            finished: false,
+            files: [],
+        };
+        if (state.finished) {
+            return state.files;
+        }
 
         const LABELS = {
             START: 'START',
             SBIRKA_LISTIN: 'SBIRKA_LISTIN',
             LISTINA: 'LISTINA',
-        };
-
-        const encodedFiles: string[] = [];
+        } as const;
 
         const crawler = new CheerioCrawler({
-            proxyConfiguration,
+            proxyConfiguration: await Actor.createProxyConfiguration(),
             maxRequestsPerCrawl: 100,
+            maxConcurrency: 4,
             requestHandler: async ({ enqueueLinks, request, $, sendRequest }) => {
                 if (request.label === LABELS.START) {
                     log.info('Enqueuing urls from search page...');
@@ -67,13 +85,12 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                         log.info('Downloading document...');
                         const downloadUrl = `https://or.justice.cz${link.attribs.href}`;
                         const response = await sendRequest({ url: downloadUrl });
-                        const contentType = response.rawHeaders[response.rawHeaders.findIndex((h) => h.toLowerCase() === 'content-type') + 1];
-                        const extension = contentType.split('/').pop();
-                        const filename = this.getNextFilename(extension as string);
-
+                        // For some reason, we can only access raw headers
+                        const { contentType, filename } = getFileMetadata(response.rawHeaders);
                         await Actor.setValue(filename, response.rawBody, { contentType });
-                        await Actor.pushData({ type: 'downloadedFile', url: request.loadedUrl, filename });
-                        encodedFiles.push(response.rawBody.toString('base64'));
+                        // Update and persist state
+                        state.files.push(filename);
+                        await Actor.setValue(stateKey, state);
                     }
                 }
             },
@@ -83,18 +100,50 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         startUrl.searchParams.set('jenPlatne', 'PLATNE');
         startUrl.searchParams.set('polozek', '1');
         startUrl.searchParams.set('typHledani', 'STARTS_WITH');
-        startUrl.searchParams.set('nazev', search);
+        startUrl.searchParams.set('nazev', companyName);
 
         await crawler.run([
             { url: startUrl.toString(), label: LABELS.START },
         ]);
 
-        const textContents = await Promise.allSettled(encodedFiles.map(pdfToText));
-        const transformedTextContents = textContents.filter((o) => o.status === 'fulfilled');
+        // Persist state
+        state.finished = true;
+        await Actor.setValue(stateKey, state);
 
-        log.debug(`Successfully transformed ${transformedTextContents.length} files`);
+        return state.files;
+    }
 
-        return new JSONToolOutput({ files: transformedTextContents.map((o) => o.value) });
+    protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
+        const { companyName } = input as z.infer<typeof inputSchema>;
+
+        // TODO: Duplicate code
+        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
+        const stateKey = `content-source-or-justice-state-${companyNameNormalized}`;
+        const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
+            finished: false,
+            files: [],
+        };
+
+        if (state.finished) {
+            return new JSONToolOutput({ files: state.files });
+        }
+
+        const records = await this.getRecords(companyName);
+
+        for (const record of records) {
+            const data: Buffer | null = await Actor.getValue(record);
+            if (!data) {
+                log.error('File not found', { record });
+                continue;
+            }
+            const text = await pdfToText(data.toString('base64'));
+            state.files.push(text);
+        }
+
+        state.finished = true;
+        await Actor.setValue(stateKey, state);
+
+        return new JSONToolOutput({ files: state.files });
     }
 
     static {

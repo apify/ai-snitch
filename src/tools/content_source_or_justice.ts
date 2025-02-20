@@ -41,8 +41,6 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
 
     override description: string = 'Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).';
 
-    private filenameCounter: number = 0;
-
     override inputSchema(): Promise<AnyToolSchemaLike> | AnyToolSchemaLike {
         return inputSchema;
     }
@@ -125,7 +123,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
     protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
         const { companyName } = input as z.infer<typeof inputSchema>;
 
-        // TODO: Duplicate code
+        // TODO: Duplicate code. Get the company id first (by looking it up)
         const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
         const stateKey = `content-source-or-justice-ocr-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {

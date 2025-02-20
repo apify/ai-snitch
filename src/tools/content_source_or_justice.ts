@@ -29,12 +29,17 @@ const inputSchema = z.object({
     companyName: z.string().describe('Name of company to search for.'),
 });
 
+type Config = {
+    documentLimit: number,
+}
 export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
+    constructor(private readonly config: Config) {
+        super();
+    }
+
     override name: string = 'download-data-from-or-justice';
 
     override description: string = 'Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).';
-
-    private filenameCounter: number = 0;
 
     override inputSchema(): Promise<AnyToolSchemaLike> | AnyToolSchemaLike {
         return inputSchema;
@@ -48,7 +53,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
     private async getRecords(companyName: string): Promise<string[]> {
         // This might bring issues for companies with similar names, but let's ignore that for now.
         // TODO: Normalization should be by calling rejstrik!
-        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
+        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
         const stateKey = `content-source-or-justice-download-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
@@ -67,7 +72,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         const crawler = new CheerioCrawler({
             proxyConfiguration: await Actor.createProxyConfiguration(),
             maxRequestsPerCrawl: 100,
-            maxConcurrency: 4,
+            maxConcurrency: 20,
             requestHandler: async ({ enqueueLinks, request, $, sendRequest }) => {
                 if (request.label === LABELS.START) {
                     log.info('Enqueuing urls from search page...');
@@ -78,7 +83,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                 } else if (request.label === LABELS.SBIRKA_LISTIN) {
                     log.info('Enqueuing URLs from document list...');
                     await enqueueLinks({
-                        limit: 2,
+                        limit: this.config.documentLimit,
                         selector: 'a[href^="./vypis-sl-detail"]',
                         label: LABELS.LISTINA,
                     });
@@ -118,8 +123,8 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
     protected async _run(input: ToolInput<this>): Promise<JSONToolOutput<ContentSourceOrJusticeToolOutput>> {
         const { companyName } = input as z.infer<typeof inputSchema>;
 
-        // TODO: Duplicate code
-        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-');
+        // TODO: Duplicate code. Get the company id first (by looking it up)
+        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
         const stateKey = `content-source-or-justice-ocr-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
@@ -133,6 +138,9 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         const records = await this.getRecords(companyName);
 
         for (const record of records) {
+            // Only deal with PDF files
+            if (!record.endsWith('.pdf')) continue;
+            // TODO: This does not work well when we're re-running the actor
             const data: Buffer | null = await Actor.getValue(record);
             if (!data) {
                 log.error('File not found', { record });

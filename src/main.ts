@@ -46,6 +46,7 @@ Information about companies can be found and downloaded from Czech company listi
 Go through the content of files to find and connect relevant pieces of information.
 Unless asked otherwise, you can do the search recursively to get more information about related companies.
 The files might be in any language, your output should always be in English.
+Texts were extracted using OCR and may contain errors or missing words. Try to infer missing details while maintaining accuracy.
 If you are asked to visualize the relations, generate and save the output using mermaid format.
 `;
 

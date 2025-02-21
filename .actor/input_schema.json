@@ -8,7 +8,7 @@
       "type": "string",
       "description": "Query for the agent.",
       "editor": "textarea",
-      "prefill": "What do you need to know?"
+      "prefill": "Who are the owners of Apify?"
     },
     "modelName": {
       "title": "OpenAI model",

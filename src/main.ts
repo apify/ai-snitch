@@ -40,12 +40,14 @@ if (!query) {
     throw new Error('An agent query is required.');
 }
 
-const baseQuery = `Find entities (people or organizations), and their relations based on data in documents at given urls.
+const baseQuery = `You are an AI agent and your task is to process a following query from a user: ${query}
+
+Information about companies can be found and downloaded from Czech company listing "Obchodní rejstřík".
+Go through the content of files to find and connect relevant pieces of information.
+Unless asked otherwise, you can do the search recursively to get more information about related companies.
 The files might be in any language, your output should always be in English.
-
-You can search for the company or person info in obchodni rejstrik justice.
-
-Generate and save diagram of entities and relations in mermaid format.`;
+If you are asked to visualize the relations, generate and save the output using mermaid format.
+`;
 
 const prompt = `${baseQuery}\n${query}`;
 

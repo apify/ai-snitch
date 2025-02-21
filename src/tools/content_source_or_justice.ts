@@ -145,6 +145,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         for (const record of records) {
             // Only deal with PDF files
             if (!record.endsWith('.pdf')) continue;
+            const txtFilename = `${record}.txt`;
             // TODO: This does not work well when we're re-running the actor without purge
             const data: Buffer | null = await Actor.getValue(record);
             if (!data) {
@@ -152,6 +153,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                 continue;
             }
             const text = await pdfToText(data.toString('base64'));
+            await Actor.setValue(txtFilename, text, { contentType: 'text/plain' });
             state.files.push(text);
         }
 

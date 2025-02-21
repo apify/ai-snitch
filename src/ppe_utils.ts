@@ -40,3 +40,7 @@ export async function chargeForActorStart() {
         await Actor.charge({ eventName: 'actor-start-gb', count });
     }
 }
+
+export async function chargeForOcrCall() {
+    await Actor.charge({ eventName: PPE_EVENT.OCR_CALL, count: 1 });
+}

@@ -4,21 +4,25 @@ import { Emitter } from 'bee-agent-framework/emitter/emitter';
 import { AnyToolSchemaLike } from 'bee-agent-framework/internals/helpers/schema';
 import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framework/tools/base';
 import { z } from 'zod';
+
 import { pdfToText } from '../utils/pdfToText.js';
 
 const getHeaderValue = (rawHeaders: string[], name: string): string | null | undefined => {
     return rawHeaders[rawHeaders.findIndex((h) => h.toLowerCase() === name) + 1];
 };
 
-// TODO: File counter + search prefix + search normalization
-const getFileMetadata = (rawHeaders: string[]) => {
+const getFileMetadata = (prefix: string, rawHeaders: string[]) => {
     const contentType = getHeaderValue(rawHeaders, 'content-type') ?? 'text/plain';
     const filename = getHeaderValue(rawHeaders, 'content-disposition')?.match(/filename="(.*)"/)?.[1] || 'unknown';
 
     return {
         contentType,
-        filename: filename.replace(/[^a-zA-Z0-9_.-]/g, '-'),
+        filename: `${prefix}-${+new Date()}-${filename.replace(/[^a-zA-Z0-9_.-]/g, '-')}`,
     };
+};
+
+const normalizeName = (name: string): string => {
+    return name.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
 };
 
 interface ContentSourceOrJusticeToolOutput {
@@ -53,8 +57,8 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
 
     private async getRecords(companyName: string): Promise<string[]> {
         // This might bring issues for companies with similar names, but let's ignore that for now.
-        // TODO: Normalization should be by calling rejstrik!
-        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
+        // TODO: Normalization should be done by calling rejstrik and getting the id!
+        const companyNameNormalized = normalizeName(companyName);
         const stateKey = `content-source-or-justice-download-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
@@ -94,7 +98,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
                         const downloadUrl = `https://or.justice.cz${link.attribs.href}`;
                         const response = await sendRequest({ url: downloadUrl });
                         // For some reason, we can only access raw headers
-                        const { contentType, filename } = getFileMetadata(response.rawHeaders);
+                        const { contentType, filename } = getFileMetadata(companyNameNormalized, response.rawHeaders);
                         await Actor.setValue(filename, response.rawBody, { contentType });
                         // Update and persist state
                         state.files.push(filename);
@@ -125,7 +129,7 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         const { companyName } = input as z.infer<typeof inputSchema>;
 
         // TODO: Duplicate code. Get the company id first (by looking it up)
-        const companyNameNormalized = companyName.replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
+        const companyNameNormalized = normalizeName(companyName);
         const stateKey = `content-source-or-justice-ocr-state-${companyNameNormalized}`;
         const state: { finished: boolean, files: string[] } = (await Actor.getValue(stateKey)) || {
             finished: false,
@@ -141,13 +145,15 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
         for (const record of records) {
             // Only deal with PDF files
             if (!record.endsWith('.pdf')) continue;
-            // TODO: This does not work well when we're re-running the actor
+            const txtFilename = `${record}.txt`;
+            // TODO: This does not work well when we're re-running the actor without purge
             const data: Buffer | null = await Actor.getValue(record);
             if (!data) {
                 log.error('File not found', { record });
                 continue;
             }
             const text = await pdfToText(data.toString('base64'));
+            await Actor.setValue(txtFilename, text, { contentType: 'text/plain' });
             state.files.push(text);
         }
 

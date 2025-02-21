@@ -40,6 +40,7 @@ It saves the raw data and also the generated mermaid diagram to the key value st
         const svgFilename = `mermaid_diagram_${hash}.svg`;
         const dataFilename = `entities_relations_${hash}`;
 
+        const kvs = await Actor.openKeyValueStore();
         await Actor.setValue(dataFilename, input);
         await Actor.setValue(codeFilename, mermaidCode, { contentType: 'text/plain' });
 
@@ -53,7 +54,11 @@ It saves the raw data and also the generated mermaid diagram to the key value st
             await Actor.setValue(svgFilename, result.value.svg, { contentType: 'image/svg+xml' });
         }
 
-        return new JSONToolOutput({});
+        return new JSONToolOutput({
+            svgUrl: kvs.getPublicUrl(svgFilename),
+            codeUrl: kvs.getPublicUrl(codeFilename),
+            dataUrl: kvs.getPublicUrl(dataFilename),
+        });
     }
 
     static {

@@ -7,7 +7,7 @@
       "title": "Query",
       "type": "string",
       "description": "Query for the agent.",
-      "editor": "textfield",
+      "editor": "textarea",
       "prefill": "What do you need to know?"
     },
     "modelName": {

@@ -14,16 +14,14 @@ export const pdfToText = async (fileBase64: string) => {
     try {
         await chargeForOcrCall();
 
-        const result = await gotScraping('https://apipro1.ocr.space/parse/image', {
+        const result = await gotScraping('https://apipro2.ocr.space/parse/image', {
             method: 'POST',
             headers: {
                 apiKey: process.env.OCR_API_KEY,
                 'Content-type': 'application/x-www-form-urlencoded',
             },
-            searchParams: {
-                language: 'cze',
-            },
             form: {
+                language: 'cze',
                 base64Image: `data:application/pdf;base64,${fileBase64}`,
             },
             http2: false,
@@ -32,8 +30,6 @@ export const pdfToText = async (fileBase64: string) => {
         const parsedPages = (JSON.parse(result.body) as OcrResult)?.ParsedResults?.map(({ ParsedText }) => ParsedText);
 
         log.debug(`Parsed ${parsedPages?.length ?? 0} pages`);
-
-        if (!parsedPages?.length) console.log(result.body);
 
         return parsedPages?.join('\n\n\n');
     } catch (err: unknown) {

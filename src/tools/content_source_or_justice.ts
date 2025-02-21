@@ -5,7 +5,7 @@ import { AnyToolSchemaLike } from 'bee-agent-framework/internals/helpers/schema'
 import { JSONToolOutput, Tool, ToolEmitter, ToolInput } from 'bee-agent-framework/tools/base';
 import { z } from 'zod';
 
-import { pdfToText } from '../utils/pdfToText.js';
+import { pdfToText } from '../utils/pdf_to_text.js';
 
 const getHeaderValue = (rawHeaders: string[], name: string): string | null | undefined => {
     return rawHeaders[rawHeaders.findIndex((h) => h.toLowerCase() === name) + 1];

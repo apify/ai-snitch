@@ -75,7 +75,7 @@ const agent = new BeeAgent({
     memory: new UnconstrainedMemory(),
     tools: [
         new DataSaver(),
-        new ContentSourceOrJustice({ documentLimit: 3 }),
+        new ContentSourceOrJustice({ documentLimit: 10 }),
     ],
 });
 

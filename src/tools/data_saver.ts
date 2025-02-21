@@ -18,7 +18,8 @@ const inputSchema = z.object({
 export class DataSaver extends Tool<JSONToolOutput<DataSaverToolOutput>> {
     override name: string = 'save-entities-and-relations';
 
-    override description: string = 'Tool that saves found entities and their relations. It saves the raw data and also the generated mermaid diagram.';
+    override description: string = `Tool that saves found entities and their relations.
+It saves the raw data and also the generated mermaid diagram to the key value store.`;
 
     override inputSchema(): Promise<AnyToolSchemaLike> | AnyToolSchemaLike {
         return inputSchema;

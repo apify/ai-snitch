@@ -39,7 +39,8 @@ export class ContentSourceOrJustice extends Tool<JSONToolOutput<ContentSourceOrJ
 
     override name: string = 'download-data-from-or-justice';
 
-    override description: string = 'Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).';
+    override description: string = `Tool for downloading data from Czech company listing "Obchodní rejstřík" Justice (OR Justice).
+    Outputs contents of the documents found.`;
 
     override inputSchema(): Promise<AnyToolSchemaLike> | AnyToolSchemaLike {
         return inputSchema;

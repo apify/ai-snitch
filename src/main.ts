@@ -1,15 +1,13 @@
 import { Actor, log } from 'apify';
 import { BeeAgent } from 'bee-agent-framework/agents/bee/agent';
 import { UnconstrainedMemory } from 'bee-agent-framework/memory/unconstrainedMemory';
-import { z } from 'zod';
 import { LangChainChatModel } from 'bee-agent-framework/adapters/langchain/backend/chat';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIChatModel } from 'bee-agent-framework/adapters/openai/backend/chat';
 import { StructuredOutputGenerator } from './structured_response_generator.js';
 import { beeOutputTotalTokens, chargeForActorStart, chargeForModelTokens } from './ppe_utils.js';
 
-import { entitySchema, relationSchema } from './schemas.js';
-import { SaveMermaidDiagram } from './tools/mermaid_generator.js';
+import { DataSaver } from './tools/data_saver.js';
 import { ContentSourceOrJustice } from './tools/content_source_or_justice.js';
 
 // TODO:
@@ -31,7 +29,6 @@ await Actor.init();
 
 // Handle input
 const {
-    entityName,
     query,
     modelName,
     debug,
@@ -51,8 +48,6 @@ You can search for the company or person info in obchodni rejstrik justice.
 Generate and save diagram of entities and relations in mermaid format.`;
 
 const prompt = `${baseQuery}\n${query}`;
-
-// const prompt = 'Download records from OR Justice for company Apify.';
 
 /**
  * Actor code
@@ -76,9 +71,7 @@ const agent = new BeeAgent({
     llm,
     memory: new UnconstrainedMemory(),
     tools: [
-        // new RejstrikDocumentsScrapeTool(),
-        // new PDFLoaderTool(),
-        new SaveMermaidDiagram(),
+        new DataSaver(),
         new ContentSourceOrJustice({ documentLimit: 3 }),
     ],
 });
@@ -111,30 +104,10 @@ await chargeForModelTokens(modelName, tokensTotal);
 
 log.info(`Agent 🤖 : ${response.result.text}`);
 
-// Hacky way to get the structured output.
-// Using the stored tool messages and the user query to create a structured output.
-const structuredResponse = await structuredOutputGenerator.generateStructuredOutput(prompt,
-    z.object({
-        entities: z.array(entitySchema),
-        relations: z.array(relationSchema),
-    }));
-log.debug(`Structured response: ${JSON.stringify(structuredResponse)}`);
 // Since the token usage tracking does not work with the Bee LLM, we will
 // just charge the same amount of tokens as the total tokens used by the agent for the
 // structured output generation - which is mostly the tool calls passed to the structured output generator.
 await chargeForModelTokens(modelName, tokensTotal);
-// End of structured output generation.
-
-// Push results to the dataset.
-await Actor.pushData({
-    query,
-    response: response.result.text,
-    // This can be removed if you don't need structured output.
-    structuredResponse: structuredResponse.object,
-});
-await Actor.setValue('OUTPUT.json', structuredResponse.object);
-
-log.info('Saved all the data!');
 
 // Gracefully exit the Actor process. It's recommended to quit all Actors with an exit().
 await Actor.exit();
